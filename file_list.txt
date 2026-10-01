@@ -1,0 +1,14 @@
+3.4.17
+3.4.17.js
+chart.js
+file_list.txt
+index.html
+listfile.bat
+project-folder.txt
+se309_ble_thermometer_dashboard.html
+se309_ble_thermometer_dashboard.JPG
+se309_ble_thermometer_dashboard_webserver_hosted.JPG
+se309_iphone.md
+se309_monitor - ½Æ»s.html
+se309_monitor.html
+se309_thermometer_dashboard - ½Æ»s.html
