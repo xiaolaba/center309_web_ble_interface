@@ -16,4 +16,10 @@ se309_ble_thermometer_dashboard.JPG
 
 ### how to
 
-[se309_iphone.md](se309_iphone.md)
+[se309_iphone.md](se309_iphone.md)  
+
+### related projects
+https://github.com/xiaolaba/center309_rs232_interface  
+https://github.com/xiaolaba/HH309_logger_reader  
+https://github.com/xiaolaba/artisan_kaleido_artisan-2.4.6  
+https://github.com/xiaolaba/artisan  
