@@ -5,7 +5,8 @@ Web BLE connected, no physical cable to PC, github hosted index.html, iphone/pc/
 SE-309 or Center309/304 or HH309 those are same OEM item  
 ![SE-309.JPG](SE-309.JPG)  
 
-
+wiring_block_diagram.JPG
+![wiring_block_diagram.JPG](wiring_block_diagram.JPG)    
 
 ### uses browser with web API enabled, Edge, Chrome, not Firefox  
 load from the server, link following  
