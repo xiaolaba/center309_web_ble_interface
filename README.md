@@ -8,9 +8,12 @@ se309_ble_thermometer_dashboard_webserver_hosted.JPG
 ![se309_ble_thermometer_dashboard_webserver_hosted.JPG](se309_ble_thermometer_dashboard_webserver_hosted.JPG)  
 
 
-### download the local drive  
+### download to your local drive  
 save to your computer  
 load from your local drive, it is ok  
 se309_ble_thermometer_dashboard.JPG  
 ![se309_ble_thermometer_dashboard.JPG](se309_ble_thermometer_dashboard.JPG)  
-### 
+
+### how to
+
+[se309_iphone.md](se309_iphone.md)
