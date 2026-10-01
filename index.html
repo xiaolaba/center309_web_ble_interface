@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SE-309 4-Channel Thermometer Monitor</title>
+	
+  
+	<script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!---  
+	<script src="3.4.17.js"></script>
+    <script src="chart.js"></script>
+
+-->
+
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col items-center p-6">
+
+    <div class="w-full max-w-5xl bg-slate-800 rounded-2xl shadow-xl p-6 border border-slate-700">
+        <header class="flex flex-col md:flex-row justify-between items-center pb-6 border-b border-slate-700 gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-emerald-400">SE-309 (BLE) Thermometer Dashboard</h1>
+
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="connectBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-5 py-2.5 rounded-xl transition shadow-lg flex items-center gap-2">
+                    Connect SE-309
+                </button>
+                <button id="disconnectBtn" class="hidden bg-rose-600 hover:bg-rose-500 text-white font-medium px-5 py-2.5 rounded-xl transition shadow-lg">
+                    Stop
+                </button>
+            </div>
+			
+            <div class="flex items-center gap-3">
+                <button id="batteryStatusBtn" class="text-white font-medium px-5 py-2.5 rounded-xl transition shadow-lg flex items-center gap-2">
+                    battery Status button
+                </button>
+				
+            </div>			
+			
+			
+        </header>
+
+        <!-- Channel Readout Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 my-6">
+            <div id="cardT1" class="bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition">
+                <span id="labelT1" class="text-lg md:text-xl uppercase tracking-wider text-amber-400 font-bold">T1</span>
+                <div id="valT1" class="text-3xl font-black mt-1">----</div>
+            </div>
+            <div id="cardT2" class="bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition">
+                <span id="labelT2" class="text-lg md:text-xl uppercase tracking-wider text-rose-400 font-bold">T2</span>
+                <div id="valT2" class="text-3xl font-black mt-1">----</div>
+            </div>
+            <div id="cardT3" class="bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition">
+                <span id="labelT3" class="text-lg md:text-xl uppercase tracking-wider text-emerald-400 font-bold">T3</span>
+                <div id="valT3" class="text-3xl font-black mt-1">----</div>
+            </div>
+            <div id="cardT4" class="bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition">
+                <span id="labelT4" class="text-lg md:text-xl uppercase tracking-wider text-cyan-400 font-bold">T4</span>
+                <div id="valT4" class="text-3xl font-black mt-1">----</div>
+            </div>
+        </div>
+
+        <!-- Chart Canvas Container -->
+        <div class="relative w-full h-[320px] bg-slate-900/40 p-4 rounded-xl border border-slate-700">
+            <canvas id="tempChart"></canvas>
+        </div>
+
+        <!-- Hex Packet Log Panel -->
+        <div class="mt-4">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Raw Packet & Unit Log (0x?? Format)</span>
+                <button id="clearLogBtn" class="text-xs text-slate-400 hover:text-slate-200 underline">Clear Log</button>
+            </div>
+            <div id="logBox" class="p-3 bg-slate-950 rounded-lg text-xs font-mono text-emerald-400 h-44 overflow-y-auto border border-slate-800 leading-relaxed">
+                [System] Dashboard ready. Connecting to SE-309 BLE module...<br>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Protocol framing constants
+        const STX = 0x02;
+        const ETX = 0x03;
+        const EXPECTED_PACKET_LENGTH = 45;
+
+        let bluetoothDevice = null;
+        let rxCharacteristic = null;
+        let txCharacteristic = null;
+        let pollTimer = null;
+        let tempChart = null;
+
+        // Buffer to accumulate segmented BLE UART notifications
+        let streamBuffer = [];
+
+        // UI Elements
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const clearLogBtn = document.getElementById('clearLogBtn');
+        const logBox = document.getElementById('logBox');
+
+        const batteryStatusBtn = document.getElementById('batteryStatusBtn');
+
+        
+        const valT1 = document.getElementById('valT1');
+        const valT2 = document.getElementById('valT2');
+        const valT3 = document.getElementById('valT3');
+        const valT4 = document.getElementById('valT4');
+
+        const cardT1 = document.getElementById('cardT1');
+        const cardT2 = document.getElementById('cardT2');
+        const cardT3 = document.getElementById('cardT3');
+        const cardT4 = document.getElementById('cardT4');
+
+        const labelT1 = document.getElementById('labelT1');
+        const labelT2 = document.getElementById('labelT2');
+        const labelT3 = document.getElementById('labelT3');
+        const labelT4 = document.getElementById('labelT4');
+
+        function log(msg, isHex = false) {
+            const time = new Date().toLocaleTimeString();
+            const colorClass = isHex ? 'text-amber-300 font-mono' : 'text-slate-400';
+            
+            // Convert string and replace literal or escaped newlines with HTML breaks
+            const cleanMsg = String(msg).replace(/\\n/g, '\n');
+            const formattedMsg = cleanMsg.replace(/\n/g, '<br>&nbsp;&nbsp;');
+            
+            logBox.innerHTML += `<div class="py-0.5"><span class="text-slate-600">[${time}]</span> <span class="${colorClass}">${formattedMsg}</span></div>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        clearLogBtn.addEventListener('click', () => {
+            logBox.innerHTML = '';
+        });
+
+        function initChart() {
+            if (typeof Chart === 'undefined') {
+                log('[Error] Chart.js library is not loaded yet. Retrying...');
+                setTimeout(initChart, 500);
+                return;
+            }
+
+            const ctx = document.getElementById('tempChart').getContext('2d');
+            tempChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'T1', borderColor: '#fbbf24', data: [], borderWidth: 2, pointRadius: 0, tension: 0.1 },
+                        { label: 'T2', borderColor: '#fb7185', data: [], borderWidth: 2, pointRadius: 0, tension: 0.1 },
+                        { label: 'T3', borderColor: '#34d399', data: [], borderWidth: 2, pointRadius: 0, tension: 0.1 },
+                        { label: 'T4', borderColor: '#22d3ee', data: [], borderWidth: 2, pointRadius: 0, tension: 0.1 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } }
+                    },
+                    plugins: { legend: { labels: { color: '#f1f5f9' } } }
+                }
+            });
+        }
+
+        // Safe initialization on window load
+        window.addEventListener('load', () => {
+            initChart();
+        });
+
+        connectBtn.addEventListener('click', async () => {
+            try {
+                log('Requesting Bluetooth Device...');
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: [
+                        '6e400001-b5a3-f393-e0a9-e50e24dcca9e',
+                        '0000ffe0-0000-1000-8000-00805f9b34fb'
+                    ]
+                });
+
+                bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+                log(`Connecting to ${bluetoothDevice.name || 'SE-309 Device'}...`);
+                const server = await bluetoothDevice.gatt.connect();
+                
+                log('Discovering Services & Characteristics...');
+                const services = await server.getPrimaryServices();
+                
+                for (let service of services) {
+                    const characteristics = await service.getCharacteristics();
+                    for (let char of characteristics) {
+                        if (char.properties.write || char.properties.writeWithoutResponse) {
+                            txCharacteristic = char;
+                        }
+                        if (char.properties.notify || char.properties.indicate) {
+                            rxCharacteristic = char;
+                        }
+                    }
+                }
+
+                if (!rxCharacteristic || !txCharacteristic) {
+                    const uartService = await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e').catch(() => null);
+                    if (uartService) {
+                        txCharacteristic = await uartService.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');
+                        rxCharacteristic = await uartService.getCharacteristic('6e400003-b5a3-f393-e0a9-e50e24dcca9e');
+                    }
+                }
+
+                if (!rxCharacteristic || !txCharacteristic) {
+                    throw new Error('Could not find appropriate RX/TX UART characteristics.');
+                }
+
+                await rxCharacteristic.startNotifications();
+                rxCharacteristic.addEventListener('characteristicvaluechanged', handleIncomingData);
+
+                log('Connected successfully!');
+                connectBtn.classList.add('hidden');
+                disconnectBtn.classList.remove('hidden');
+
+                pollTimer = setInterval(sendReadCommand, 500);
+
+            } catch (error) {
+                log(`Connection Error: ${error}`);
+            }
+        });
+
+        disconnectBtn.addEventListener('click', () => {
+            if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+                bluetoothDevice.gatt.disconnect();
+            }
+            onDisconnected();
+        });
+
+        function onDisconnected() {
+            log('Device disconnected.');
+            if (pollTimer) clearInterval(pollTimer);
+            connectBtn.classList.remove('hidden');
+            disconnectBtn.classList.add('hidden');
+            streamBuffer = [];
+        }
+
+        async function sendReadCommand() {
+            if (!txCharacteristic) return;
+            try {
+                const encoder = new TextEncoder();
+                await txCharacteristic.writeValueWithoutResponse(encoder.encode('A'));
+                log('Sent polling command: 0x41 (\'A\')');
+            } catch (err) {
+                log(`Write Error: ${err}`);
+            }
+        }
+
+        function handleIncomingData(event) {
+            const value = event.target.value;
+            const chunk = new Uint8Array(value.buffer);
+
+            // Append incoming BLE byte chunks to stream buffer
+            for (let i = 0; i < chunk.length; i++) {
+                streamBuffer.push(chunk[i]);
+            }
+
+            // Continuously scan stream buffer using fixed 45-byte STX/ETX frame alignment
+            while (true) {
+                const stxIndex = streamBuffer.indexOf(STX);
+                if (stxIndex === -1) {
+                    if (streamBuffer.length > 512) streamBuffer = [];
+                    break;
+                }
+
+                // Discard garbage preceding STX
+                if (stxIndex > 0) {
+                    streamBuffer.splice(0, stxIndex);
+                }
+
+                // Wait until at least 45 bytes have accumulated
+                if (streamBuffer.length < EXPECTED_PACKET_LENGTH) {
+                    break;
+                }
+
+                // Verify that byte 44 is ETX (0x03)
+                if (streamBuffer[EXPECTED_PACKET_LENGTH - 1] === ETX) {
+                    const frameBytes = streamBuffer.slice(0, EXPECTED_PACKET_LENGTH);
+                    streamBuffer.splice(0, EXPECTED_PACKET_LENGTH);
+
+                    const packetArray = new Uint8Array(frameBytes);
+                    
+                    // Format hexString into chunks of 16 bytes per line
+                    const hexString = Array.from(packetArray)
+                        //.map(b => '0x' + b.toString(16).padStart(2, '0').toUpperCase())
+						.map(b => b.toString(16).padStart(2, '0').toUpperCase())
+                        .reduce((acc, curr, idx) => {
+                            return acc + curr + ((idx + 1) % 16 === 0 && idx < packetArray.length - 1 ? '\n' : ' ');
+                        }, '');
+
+                    log(`RX Frame (HEX ${frameBytes.length} bytes):\n${hexString}`, true);
+
+                    parseAndPlotSE309Packet(packetArray);
+                } else {
+                    // False STX byte found inside payload, discard byte 0 and resynchronize
+                    const badTailHex = '0x' + streamBuffer[EXPECTED_PACKET_LENGTH - 1].toString(16).padStart(2, '0').toUpperCase();
+                    log(`[Frame Resync] False STX at index 0 (Byte 44 is ${badTailHex}, expected 0x03 ETX)`);
+                    streamBuffer.splice(0, 1);
+                }
+            }
+        }
+
+        function parseAndPlotSE309Packet(packet) {
+            try {
+                // Temperature Unit extraction: packet[1] bit 7 check (0x80)
+                const isCelsius = (packet[1] & 0x80) !== 0;
+                const unit = isCelsius ? '°C' : '°F';
+				
+                const lowBatteryFlag = (packet[1] & 0x40) !== 0;	// bit 6 = 0 ?
+                const BatteryStatus = lowBatteryFlag ? 'Low Battery' : 'Battery ok';
+				log(`${BatteryStatus}`);
+				
+				batteryStatusBtn.innerText = BatteryStatus;
+				if(lowBatteryFlag) {
+					batteryStatusBtn.classList.add('bg-rose-600'); // red
+                }else{
+					batteryStatusBtn.classList.add('bg-emerald-600');	// green
+				}
+				
+				
+                // Log detailed unit parse debug informationbatteryStatusBtn
+                const hexP1 = '0x' + packet[1].toString(16).padStart(2, '0').toUpperCase();
+                //log(`[Unit Parse] packet[1]: ${hexP1} (Bit 7: ${isCelsius ? 1 : 0}) -> Unit: ${unit}`);
+
+                // T1-T4 raw high/low 16-bit extraction
+                const rawT1 = (packet[7] << 8) + packet[8];
+                const rawT2 = (packet[9] << 8) + packet[10];
+                const rawT3 = (packet[11] << 8) + packet[12];
+                const rawT4 = (packet[13] << 8) + packet[14];
+
+                const toSigned16 = (val) => (val & 0x8000) ? val - 0x10000 : val;
+
+                let t1 = toSigned16(rawT1) / 10.0;
+                let t2 = toSigned16(rawT2) / 10.0;
+                let t3 = toSigned16(rawT3) / 10.0;
+                let t4 = toSigned16(rawT4) / 10.0;
+
+                // Overload status evaluation using packet[39] and raw sensor disconnect values (0x7FFF / 0x8000)
+                const overloadByte = packet[39];
+                let isT1Overload = (overloadByte === 1 || (overloadByte & 0x01)) || rawT1 === 0x7FFF || rawT1 === 0x8000;
+                let isT2Overload = (overloadByte === 2 || (overloadByte & 0x02)) || rawT2 === 0x7FFF || rawT2 === 0x8000;
+                let isT3Overload = (overloadByte === 3 || (overloadByte & 0x04)) || rawT3 === 0x7FFF || rawT3 === 0x8000;
+                let isT4Overload = (overloadByte === 4 || (overloadByte & 0x08)) || rawT4 === 0x7FFF || rawT4 === 0x8000;
+
+                // Update UI for T1
+                if (isT1Overload) {
+                    valT1.innerText = "-";
+                    cardT1.className = "bg-rose-950/80 border border-rose-600 p-4 rounded-xl text-center transition animate-pulse";
+                    t1 = null;
+                } else {
+                    valT1.innerText = t1.toFixed(1) + " " + unit;
+                    cardT1.className = "bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition";
+                }
+
+                // Update UI for T2
+                if (isT2Overload) {
+                    valT2.innerText = "-";
+                    cardT2.className = "bg-rose-950/80 border border-rose-600 p-4 rounded-xl text-center transition animate-pulse";
+                    t2 = null;
+                } else {
+                    valT2.innerText = t2.toFixed(1) + " " + unit;
+                    cardT2.className = "bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition";
+                }
+
+                // Update UI for T3
+                if (isT3Overload) {
+                    valT3.innerText = "-";
+                    cardT3.className = "bg-rose-950/80 border border-rose-600 p-4 rounded-xl text-center transition animate-pulse";
+                    t3 = null;
+                } else {
+                    valT3.innerText = t3.toFixed(1) + " " + unit;
+                    cardT3.className = "bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition";
+                }
+
+                // Update UI for T4
+                if (isT4Overload) {
+                    valT4.innerText = "-";
+                    cardT4.className = "bg-rose-950/80 border border-rose-600 p-4 rounded-xl text-center transition animate-pulse";
+                    t4 = null;
+                } else {
+                    valT4.innerText = t4.toFixed(1) + " " + unit;
+                    cardT4.className = "bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition";
+                }
+
+                // Update Chart.js dataset if chart object exists
+                if (tempChart) {
+                    const timeLabel = new Date().toLocaleTimeString();
+                    if (tempChart.data.labels.length > 500) {
+                        tempChart.data.labels.shift();
+                        tempChart.data.datasets.forEach(dataset => dataset.data.shift());
+                    }
+
+                    tempChart.data.labels.push(timeLabel);
+                    tempChart.data.datasets[0].data.push(t1);
+                    tempChart.data.datasets[1].data.push(t2);
+                    tempChart.data.datasets[3].data.push(t4);
+                    tempChart.data.datasets[2].data.push(t3);
+                    tempChart.update('none');
+                }
+
+            } catch (e) {
+                log(`Parse error: ${e.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
