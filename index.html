@@ -2,84 +2,80 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- 針對 iPhone 11 及行動裝置優化 viewport 設定，禁止不當縮放並適配安全區域 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SE-309 4-Channel Thermometer Monitor</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
+	
+  
+	<script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!---  
+	<script src="3.4.17.js"></script>
+    <script src="chart.js"></script>
+
+-->
+
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col items-center p-3 sm:p-6 pb-10">
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col items-center p-6">
 
-    <!-- 主容器：針對 iPhone 11 (828x1792 邏輯寬度約 414px) 優化邊距與內距 -->
-    <div class="w-full max-w-5xl bg-slate-800 rounded-2xl shadow-xl p-4 sm:p-6 border border-slate-700">
-        
-        <!-- Header 區塊：在窄螢幕上改為完全垂直堆疊，按鈕寬度展開以便手指點擊 -->
-        <header class="flex flex-col pb-4 sm:pb-6 border-b border-slate-700 gap-3">
-            <div class="flex justify-between items-start">
-                <div>
-                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-emerald-400">SE-309 Dashboard</h1>
-                    <p class="text-xs sm:text-sm text-slate-400">BLE & Web Serial Monitor</p>
-                </div>
-                <!-- 電池狀態按鈕移至右上角精簡顯示 -->
-                <button id="batteryStatusBtn" class="text-xs sm:text-sm text-white font-medium px-3 py-1.5 rounded-lg transition shadow-md flex items-center gap-1.5 bg-emerald-600">
-                    Battery OK
+    <div class="w-full max-w-5xl bg-slate-800 rounded-2xl shadow-xl p-6 border border-slate-700">
+        <header class="flex flex-col md:flex-row justify-between items-center pb-6 border-b border-slate-700 gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-emerald-400">SE-309 (BLE) Thermometer Dashboard</h1>
+                <p class="text-sm text-slate-400">Edge, Chrome Web API capable browser only, Firefox not working</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="connectBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-5 py-2.5 rounded-xl transition shadow-lg flex items-center gap-2">
+                    Connect SE-309
+                </button>
+                <button id="disconnectBtn" class="hidden bg-rose-600 hover:bg-rose-500 text-white font-medium px-5 py-2.5 rounded-xl transition shadow-lg">
+                    Stop
                 </button>
             </div>
-
-            <!-- 連線按鈕群組：滿版排列，觸控區域加大 (min-height 44px 適合手指操作) -->
-            <div class="grid grid-cols-2 gap-2 mt-1">
-                <!-- BLE Buttons -->
-                <button id="connectBleBtn" class="bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-medium py-3 px-3 rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-sm">
-                    Connect BLE
+			
+            <div class="flex items-center gap-3">
+                <button id="batteryStatusBtn" class="text-white font-medium px-5 py-2.5 rounded-xl transition shadow-lg flex items-center gap-2">
+                    battery Status button
                 </button>
-                <button id="disconnectBleBtn" class="hidden bg-rose-600 hover:bg-rose-500 text-white font-medium py-3 px-3 rounded-xl transition shadow-lg flex items-center justify-center text-sm">
-                    Stop BLE
-                </button>
-
-                <!-- Serial Buttons -->
-                <button id="connectSerialBtn" class="bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white font-medium py-3 px-3 rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-sm">
-                    Connect Serial
-                </button>
-                <button id="disconnectSerialBtn" class="hidden bg-rose-600 hover:bg-rose-500 text-white font-medium py-3 px-3 rounded-xl transition shadow-lg flex items-center justify-center text-sm">
-                    Stop Serial
-                </button>
-            </div>
+				
+            </div>			
+			
+			
         </header>
 
-        <!-- Channel Readout Cards: 2x2 網格排版，完美適配 iPhone 11 寬度 -->
-        <div class="grid grid-cols-2 gap-3 my-4">
-            <div id="cardT1" class="bg-slate-900/60 border border-slate-700 p-3 sm:p-4 rounded-xl text-center transition">
-                <span id="labelT1" class="text-sm sm:text-xl uppercase tracking-wider text-amber-400 font-bold">T1</span>
-                <div id="valT1" class="text-2xl sm:text-3xl font-black mt-1">----</div>
+        <!-- Channel Readout Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 my-6">
+            <div id="cardT1" class="bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition">
+                <span id="labelT1" class="text-lg md:text-xl uppercase tracking-wider text-amber-400 font-bold">T1</span>
+                <div id="valT1" class="text-3xl font-black mt-1">----</div>
             </div>
-            <div id="cardT2" class="bg-slate-900/60 border border-slate-700 p-3 sm:p-4 rounded-xl text-center transition">
-                <span id="labelT2" class="text-sm sm:text-xl uppercase tracking-wider text-rose-400 font-bold">T2</span>
-                <div id="valT2" class="text-2xl sm:text-3xl font-black mt-1">----</div>
+            <div id="cardT2" class="bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition">
+                <span id="labelT2" class="text-lg md:text-xl uppercase tracking-wider text-rose-400 font-bold">T2</span>
+                <div id="valT2" class="text-3xl font-black mt-1">----</div>
             </div>
-            <div id="cardT3" class="bg-slate-900/60 border border-slate-700 p-3 sm:p-4 rounded-xl text-center transition">
-                <span id="labelT3" class="text-sm sm:text-xl uppercase tracking-wider text-emerald-400 font-bold">T3</span>
-                <div id="valT3" class="text-2xl sm:text-3xl font-black mt-1">----</div>
+            <div id="cardT3" class="bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition">
+                <span id="labelT3" class="text-lg md:text-xl uppercase tracking-wider text-emerald-400 font-bold">T3</span>
+                <div id="valT3" class="text-3xl font-black mt-1">----</div>
             </div>
-            <div id="cardT4" class="bg-slate-900/60 border border-slate-700 p-3 sm:p-4 rounded-xl text-center transition">
-                <span id="labelT4" class="text-sm sm:text-xl uppercase tracking-wider text-cyan-400 font-bold">T4</span>
-                <div id="valT4" class="text-2xl sm:text-3xl font-black mt-1">----</div>
+            <div id="cardT4" class="bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition">
+                <span id="labelT4" class="text-lg md:text-xl uppercase tracking-wider text-cyan-400 font-bold">T4</span>
+                <div id="valT4" class="text-3xl font-black mt-1">----</div>
             </div>
         </div>
 
-        <!-- Chart Canvas Container: 調整高度在 iPhone 11 直向螢幕上不需過度捲動 -->
-        <div class="relative w-full h-[240px] sm:h-[320px] bg-slate-900/40 p-2 sm:p-4 rounded-xl border border-slate-700">
+        <!-- Chart Canvas Container -->
+        <div class="relative w-full h-[320px] bg-slate-900/40 p-4 rounded-xl border border-slate-700">
             <canvas id="tempChart"></canvas>
         </div>
 
         <!-- Hex Packet Log Panel -->
         <div class="mt-4">
             <div class="flex justify-between items-center mb-2">
-                <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Raw Packet Log</span>
-                <button id="clearLogBtn" class="text-xs text-slate-400 hover:text-slate-200 underline py-1 px-2">Clear Log</button>
+                <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Raw Packet & Unit Log (0x?? Format)</span>
+                <button id="clearLogBtn" class="text-xs text-slate-400 hover:text-slate-200 underline">Clear Log</button>
             </div>
-            <div id="logBox" class="p-3 bg-slate-950 rounded-lg text-[11px] sm:text-xs font-mono text-emerald-400 h-36 sm:h-44 overflow-y-auto border border-slate-800 leading-relaxed">
-                [System] Ready. Choose connection type...<br>
+            <div id="logBox" class="p-3 bg-slate-950 rounded-lg text-xs font-mono text-emerald-400 h-44 overflow-y-auto border border-slate-800 leading-relaxed">
+                [System] Dashboard ready. Connecting to SE-309 BLE module...<br>
             </div>
         </div>
     </div>
@@ -90,29 +86,24 @@
         const ETX = 0x03;
         const EXPECTED_PACKET_LENGTH = 45;
 
-        // BLE Variables
         let bluetoothDevice = null;
         let rxCharacteristic = null;
         let txCharacteristic = null;
-
-        // Serial Variables
-        let serialPort = null;
-        let serialReader = null;
-        let keepReadingSerial = false;
-
         let pollTimer = null;
         let tempChart = null;
+
+        // Buffer to accumulate segmented BLE UART notifications
         let streamBuffer = [];
 
         // UI Elements
-        const connectBleBtn = document.getElementById('connectBleBtn');
-        const disconnectBleBtn = document.getElementById('disconnectBleBtn');
-        const connectSerialBtn = document.getElementById('connectSerialBtn');
-        const disconnectSerialBtn = document.getElementById('disconnectSerialBtn');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
         const clearLogBtn = document.getElementById('clearLogBtn');
         const logBox = document.getElementById('logBox');
+
         const batteryStatusBtn = document.getElementById('batteryStatusBtn');
 
+        
         const valT1 = document.getElementById('valT1');
         const valT2 = document.getElementById('valT2');
         const valT3 = document.getElementById('valT3');
@@ -123,9 +114,16 @@
         const cardT3 = document.getElementById('cardT3');
         const cardT4 = document.getElementById('cardT4');
 
+        const labelT1 = document.getElementById('labelT1');
+        const labelT2 = document.getElementById('labelT2');
+        const labelT3 = document.getElementById('labelT3');
+        const labelT4 = document.getElementById('labelT4');
+
         function log(msg, isHex = false) {
             const time = new Date().toLocaleTimeString();
             const colorClass = isHex ? 'text-amber-300 font-mono' : 'text-slate-400';
+            
+            // Convert string and replace literal or escaped newlines with HTML breaks
             const cleanMsg = String(msg).replace(/\\n/g, '\n');
             const formattedMsg = cleanMsg.replace(/\n/g, '<br>&nbsp;&nbsp;');
             
@@ -139,6 +137,7 @@
 
         function initChart() {
             if (typeof Chart === 'undefined') {
+                log('[Error] Chart.js library is not loaded yet. Retrying...');
                 setTimeout(initChart, 500);
                 return;
             }
@@ -160,20 +159,20 @@
                     maintainAspectRatio: false,
                     animation: false,
                     scales: {
-                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
-                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } }
                     },
-                    plugins: { legend: { labels: { color: '#f1f5f9', boxWidth: 12, font: { size: 11 } } } }
+                    plugins: { legend: { labels: { color: '#f1f5f9' } } }
                 }
             });
         }
 
+        // Safe initialization on window load
         window.addEventListener('load', () => {
             initChart();
         });
 
-        // ==================== BLUETOOTH (BLE) LOGIC ====================
-        connectBleBtn.addEventListener('click', async () => {
+        connectBtn.addEventListener('click', async () => {
             try {
                 log('Requesting Bluetooth Device...');
                 bluetoothDevice = await navigator.bluetooth.requestDevice({
@@ -184,17 +183,23 @@
                     ]
                 });
 
-                bluetoothDevice.addEventListener('gattserverdisconnected', onBleDisconnected);
+                bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
-                log(`Connecting to ${bluetoothDevice.name || 'SE-309'}...`);
+                log(`Connecting to ${bluetoothDevice.name || 'SE-309 Device'}...`);
                 const server = await bluetoothDevice.gatt.connect();
                 
+                log('Discovering Services & Characteristics...');
                 const services = await server.getPrimaryServices();
+                
                 for (let service of services) {
                     const characteristics = await service.getCharacteristics();
                     for (let char of characteristics) {
-                        if (char.properties.write || char.properties.writeWithoutResponse) txCharacteristic = char;
-                        if (char.properties.notify || char.properties.indicate) rxCharacteristic = char;
+                        if (char.properties.write || char.properties.writeWithoutResponse) {
+                            txCharacteristic = char;
+                        }
+                        if (char.properties.notify || char.properties.indicate) {
+                            rxCharacteristic = char;
+                        }
                     }
                 }
 
@@ -207,129 +212,59 @@
                 }
 
                 if (!rxCharacteristic || !txCharacteristic) {
-                    throw new Error('UART characteristics not found.');
+                    throw new Error('Could not find appropriate RX/TX UART characteristics.');
                 }
 
                 await rxCharacteristic.startNotifications();
-                rxCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
-                    processIncomingBytes(new Uint8Array(event.target.value.buffer));
-                });
+                rxCharacteristic.addEventListener('characteristicvaluechanged', handleIncomingData);
 
-                log('BLE Connected!');
-                connectBleBtn.classList.add('hidden');
-                connectSerialBtn.classList.add('hidden');
-                disconnectBleBtn.classList.remove('hidden');
+                log('Connected successfully!');
+                connectBtn.classList.add('hidden');
+                disconnectBtn.classList.remove('hidden');
 
-                pollTimer = setInterval(sendBleReadCommand, 500);
+                pollTimer = setInterval(sendReadCommand, 500);
 
             } catch (error) {
-                log(`BLE Error: ${error}`);
+                log(`Connection Error: ${error}`);
             }
         });
 
-        disconnectBleBtn.addEventListener('click', () => {
+        disconnectBtn.addEventListener('click', () => {
             if (bluetoothDevice && bluetoothDevice.gatt.connected) {
                 bluetoothDevice.gatt.disconnect();
             }
-            onBleDisconnected();
+            onDisconnected();
         });
 
-        function onBleDisconnected() {
-            log('BLE disconnected.');
+        function onDisconnected() {
+            log('Device disconnected.');
             if (pollTimer) clearInterval(pollTimer);
-            connectBleBtn.classList.remove('hidden');
-            connectSerialBtn.classList.remove('hidden');
-            disconnectBleBtn.classList.add('hidden');
+            connectBtn.classList.remove('hidden');
+            disconnectBtn.classList.add('hidden');
             streamBuffer = [];
         }
 
-        async function sendBleReadCommand() {
+        async function sendReadCommand() {
             if (!txCharacteristic) return;
             try {
-                await txCharacteristic.writeValueWithoutResponse(new TextEncoder().encode('A'));
-            } catch (err) {}
-        }
-
-        // ==================== WEB SERIAL LOGIC ====================
-        connectSerialBtn.addEventListener('click', async () => {
-            if (!('serial' in navigator)) {
-                alert('Web Serial is not supported in this browser (iOS Web Serial requires external companion apps or specific web wrappers; standard Safari does not support Web Serial directly).');
-                return;
-            }
-
-            try {
-                log('Requesting Serial Port...');
-                serialPort = await navigator.serial.requestPort();
-                await serialPort.open({ baudRate: 9600 });
-                log('Serial opened.');
-
-                connectBleBtn.classList.add('hidden');
-                connectSerialBtn.classList.add('hidden');
-                disconnectSerialBtn.classList.remove('hidden');
-
-                keepReadingSerial = true;
-                readSerialLoop();
-
-                pollTimer = setInterval(sendSerialReadCommand, 500);
-
-            } catch (error) {
-                log(`Serial Error: ${error}`);
-            }
-        });
-
-        disconnectSerialBtn.addEventListener('click', async () => {
-            keepReadingSerial = false;
-            if (pollTimer) clearInterval(pollTimer);
-            if (serialReader) {
-                try { await serialReader.cancel(); } catch (e) {}
-                serialReader = null;
-            }
-            if (serialPort) {
-                try { await serialPort.close(); } catch (e) {}
-                serialPort = null;
-            }
-            onSerialDisconnected();
-        });
-
-        function onSerialDisconnected() {
-            log('Serial closed.');
-            connectBleBtn.classList.remove('hidden');
-            connectSerialBtn.classList.remove('hidden');
-            disconnectSerialBtn.classList.add('hidden');
-            streamBuffer = [];
-        }
-
-        async function sendSerialReadCommand() {
-            if (!serialPort || !serialPort.writable) return;
-            try {
-                const writer = serialPort.writable.getWriter();
-                await writer.write(new TextEncoder().encode('A'));
-                writer.releaseLock();
-            } catch (err) {}
-        }
-
-        async function readSerialLoop() {
-            while (serialPort && serialPort.readable && keepReadingSerial) {
-                serialReader = serialPort.readable.getReader();
-                try {
-                    while (true) {
-                        const { value, done } = await serialReader.read();
-                        if (done) break;
-                        if (value) processIncomingBytes(value);
-                    }
-                } catch (error) {
-                } finally {
-                    serialReader.releaseLock();
-                }
+                const encoder = new TextEncoder();
+                await txCharacteristic.writeValueWithoutResponse(encoder.encode('A'));
+                log('Sent polling command: 0x41 (\'A\')');
+            } catch (err) {
+                log(`Write Error: ${err}`);
             }
         }
 
-        // ==================== COMMON PACKET PARSER ====================
-        function processIncomingBytes(chunk) {
+        function handleIncomingData(event) {
+            const value = event.target.value;
+            const chunk = new Uint8Array(value.buffer);
+
+            // Append incoming BLE byte chunks to stream buffer
             for (let i = 0; i < chunk.length; i++) {
                 streamBuffer.push(chunk[i]);
             }
 
+            // Continuously scan stream buffer using fixed 45-byte STX/ETX frame alignment
             while (true) {
                 const stxIndex = streamBuffer.indexOf(STX);
                 if (stxIndex === -1) {
@@ -337,14 +272,38 @@
                     break;
                 }
 
-                if (stxIndex > 0) streamBuffer.splice(0, stxIndex);
-                if (streamBuffer.length < EXPECTED_PACKET_LENGTH) break;
+                // Discard garbage preceding STX
+                if (stxIndex > 0) {
+                    streamBuffer.splice(0, stxIndex);
+                }
 
+                // Wait until at least 45 bytes have accumulated
+                if (streamBuffer.length < EXPECTED_PACKET_LENGTH) {
+                    break;
+                }
+
+                // Verify that byte 44 is ETX (0x03)
                 if (streamBuffer[EXPECTED_PACKET_LENGTH - 1] === ETX) {
                     const frameBytes = streamBuffer.slice(0, EXPECTED_PACKET_LENGTH);
                     streamBuffer.splice(0, EXPECTED_PACKET_LENGTH);
-                    parseAndPlotSE309Packet(new Uint8Array(frameBytes));
+
+                    const packetArray = new Uint8Array(frameBytes);
+                    
+                    // Format hexString into chunks of 16 bytes per line
+                    const hexString = Array.from(packetArray)
+                        //.map(b => '0x' + b.toString(16).padStart(2, '0').toUpperCase())
+						.map(b => b.toString(16).padStart(2, '0').toUpperCase())
+                        .reduce((acc, curr, idx) => {
+                            return acc + curr + ((idx + 1) % 16 === 0 && idx < packetArray.length - 1 ? '\n' : ' ');
+                        }, '');
+
+                    log(`RX Frame (HEX ${frameBytes.length} bytes):\n${hexString}`, true);
+
+                    parseAndPlotSE309Packet(packetArray);
                 } else {
+                    // False STX byte found inside payload, discard byte 0 and resynchronize
+                    const badTailHex = '0x' + streamBuffer[EXPECTED_PACKET_LENGTH - 1].toString(16).padStart(2, '0').toUpperCase();
+                    log(`[Frame Resync] False STX at index 0 (Byte 44 is ${badTailHex}, expected 0x03 ETX)`);
                     streamBuffer.splice(0, 1);
                 }
             }
@@ -352,14 +311,27 @@
 
         function parseAndPlotSE309Packet(packet) {
             try {
+                // Temperature Unit extraction: packet[1] bit 7 check (0x80)
                 const isCelsius = (packet[1] & 0x80) !== 0;
                 const unit = isCelsius ? '°C' : '°F';
-                const lowBatteryFlag = (packet[1] & 0x40) !== 0;
-                
-                batteryStatusBtn.innerText = lowBatteryFlag ? 'Low Batt' : 'Battery OK';
-                batteryStatusBtn.className = "text-xs sm:text-sm text-white font-medium px-3 py-1.5 rounded-lg transition shadow-md flex items-center gap-1.5 " + 
-                    (lowBatteryFlag ? 'bg-rose-600' : 'bg-emerald-600');
+				
+                const lowBatteryFlag = (packet[1] & 0x40) !== 0;	// bit 6 = 0 ?
+                const BatteryStatus = lowBatteryFlag ? 'Low Battery' : 'Battery ok';
+				log(`${BatteryStatus}`);
+				
+				batteryStatusBtn.innerText = BatteryStatus;
+				if(lowBatteryFlag) {
+					batteryStatusBtn.classList.add('bg-rose-600'); // red
+                }else{
+					batteryStatusBtn.classList.add('bg-emerald-600');	// green
+				}
+				
+				
+                // Log detailed unit parse debug informationbatteryStatusBtn
+                const hexP1 = '0x' + packet[1].toString(16).padStart(2, '0').toUpperCase();
+                //log(`[Unit Parse] packet[1]: ${hexP1} (Bit 7: ${isCelsius ? 1 : 0}) -> Unit: ${unit}`);
 
+                // T1-T4 raw high/low 16-bit extraction
                 const rawT1 = (packet[7] << 8) + packet[8];
                 const rawT2 = (packet[9] << 8) + packet[10];
                 const rawT3 = (packet[11] << 8) + packet[12];
@@ -372,32 +344,72 @@
                 let t3 = toSigned16(rawT3) / 10.0;
                 let t4 = toSigned16(rawT4) / 10.0;
 
+                // Overload status evaluation using packet[39] and raw sensor disconnect values (0x7FFF / 0x8000)
                 const overloadByte = packet[39];
                 let isT1Overload = (overloadByte === 1 || (overloadByte & 0x01)) || rawT1 === 0x7FFF || rawT1 === 0x8000;
-                let isT2Overload = (overloadByte === 2 || (overloadByte & 0x02)) || rawT2 === 0x7FFF || rawT2 === 0x7FFF;
+                let isT2Overload = (overloadByte === 2 || (overloadByte & 0x02)) || rawT2 === 0x7FFF || rawT2 === 0x8000;
                 let isT3Overload = (overloadByte === 3 || (overloadByte & 0x04)) || rawT3 === 0x7FFF || rawT3 === 0x8000;
                 let isT4Overload = (overloadByte === 4 || (overloadByte & 0x08)) || rawT4 === 0x7FFF || rawT4 === 0x8000;
 
-                valT1.innerText = isT1Overload ? "-" : t1.toFixed(1) + " " + unit;
-                valT2.innerText = isT2Overload ? "-" : t2.toFixed(1) + " " + unit;
-                valT3.innerText = isT3Overload ? "-" : t3.toFixed(1) + " " + unit;
-                valT4.innerText = isT4Overload ? "-" : t4.toFixed(1) + " " + unit;
+                // Update UI for T1
+                if (isT1Overload) {
+                    valT1.innerText = "-";
+                    cardT1.className = "bg-rose-950/80 border border-rose-600 p-4 rounded-xl text-center transition animate-pulse";
+                    t1 = null;
+                } else {
+                    valT1.innerText = t1.toFixed(1) + " " + unit;
+                    cardT1.className = "bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition";
+                }
 
+                // Update UI for T2
+                if (isT2Overload) {
+                    valT2.innerText = "-";
+                    cardT2.className = "bg-rose-950/80 border border-rose-600 p-4 rounded-xl text-center transition animate-pulse";
+                    t2 = null;
+                } else {
+                    valT2.innerText = t2.toFixed(1) + " " + unit;
+                    cardT2.className = "bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition";
+                }
+
+                // Update UI for T3
+                if (isT3Overload) {
+                    valT3.innerText = "-";
+                    cardT3.className = "bg-rose-950/80 border border-rose-600 p-4 rounded-xl text-center transition animate-pulse";
+                    t3 = null;
+                } else {
+                    valT3.innerText = t3.toFixed(1) + " " + unit;
+                    cardT3.className = "bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition";
+                }
+
+                // Update UI for T4
+                if (isT4Overload) {
+                    valT4.innerText = "-";
+                    cardT4.className = "bg-rose-950/80 border border-rose-600 p-4 rounded-xl text-center transition animate-pulse";
+                    t4 = null;
+                } else {
+                    valT4.innerText = t4.toFixed(1) + " " + unit;
+                    cardT4.className = "bg-slate-900/60 border border-slate-700 p-4 rounded-xl text-center transition";
+                }
+
+                // Update Chart.js dataset if chart object exists
                 if (tempChart) {
                     const timeLabel = new Date().toLocaleTimeString();
-                    if (tempChart.data.labels.length > 50) {
+                    if (tempChart.data.labels.length > 500) {
                         tempChart.data.labels.shift();
                         tempChart.data.datasets.forEach(dataset => dataset.data.shift());
                     }
 
                     tempChart.data.labels.push(timeLabel);
-                    tempChart.data.datasets[0].data.push(isT1Overload ? null : t1);
-                    tempChart.data.datasets[1].data.push(isT2Overload ? null : t2);
-                    tempChart.data.datasets[2].data.push(isT3Overload ? null : t3);
-                    tempChart.data.datasets[3].data.push(isT4Overload ? null : t4);
+                    tempChart.data.datasets[0].data.push(t1);
+                    tempChart.data.datasets[1].data.push(t2);
+                    tempChart.data.datasets[3].data.push(t4);
+                    tempChart.data.datasets[2].data.push(t3);
                     tempChart.update('none');
                 }
-            } catch (e) {}
+
+            } catch (e) {
+                log(`Parse error: ${e.message}`);
+            }
         }
     </script>
 </body>
